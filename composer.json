@@ -1,0 +1,12 @@
+{
+    "name": "barrey-m2/encrypt",
+    "authors": [
+        {
+            "name": "Barrey",
+            "email": "ajibari@live.com"
+        }
+    ],
+    "require": {
+        "paragonie/ciphersweet": "^2"
+    }
+}

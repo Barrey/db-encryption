@@ -61,7 +61,6 @@ use ParagonIE\CipherSweet\Transformation\LastFourDigits;
             ],
         ];
 
-        // var_dump($ssn->prepareForStorage($contactInfo['ssn']));
         $ssn->setTypedIndexes(true);
         foreach($contactInfo as $data){
             var_dump($ssn->prepareForStorage($data['email']));

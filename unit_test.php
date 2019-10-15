@@ -119,6 +119,17 @@ class CipherSweetTest extends TestCase
             echo "<br/>";
             $this->encryptMultiRowWithIndex($fipsEngine);
 
+        //search encrypted multifield with Index
+            echo '<br/>';
+            echo "<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+            echo '<br/>';
+            $this->searchEncryptedRowWithIndex($fipsEngine);
+
+        //search encrypted multirow with Index
+            echo "<br/>";
+            echo "-----------------------------";
+            echo "<br/>";
+            $this->searchEncryptedMultiRowWithIndex($fipsEngine);
         exit;   
     }
 
@@ -186,6 +197,9 @@ class CipherSweetTest extends TestCase
 
     public function encryptRowWithIndex(CipherSweet $backend)
     {
+        echo '<pre>';
+        echo 'encryptRowWithIndex';
+        echo '</pre>';
         $row = (new EncryptedRow($backend, 'contacts'))
             ->addTextField('customer_address')
             ->addTextField('customer_email')
@@ -231,7 +245,7 @@ class CipherSweetTest extends TestCase
 
         $indexes = $eF->getAllBlindIndexes($data[0]);
         $indexes2 = $eF->getAllBlindIndexes($data[1]);
-        echo '<pre>';
+        echo '<pre>$data[0];';
         print_r($indexes);
         print_r($indexes2);
         echo '</pre>';
@@ -344,7 +358,165 @@ class CipherSweetTest extends TestCase
         echo '<pre>';
         print_r($row->decryptManyRows($encryptedData[0]));
         echo '</pre>';
-        exit;
+        // exit;
+        foreach($row->listTables() as $table){
+            print_r($row->getTypedIndexes());
+            print_r($row->getEncryptedRowObjectForTable($table)->getTypedIndexes());
+        }
+    }
+
+    public function searchEncryptedRowWithIndex(CipherSweet $backend)
+    {
+        echo '<pre>';
+        echo 'SearchEncryptedRowWithIndex';
+        echo '</pre>';
+        $row = (new EncryptedRow($backend, 'contacts'))
+            ->addIntegerField('customer_id')
+            ->addTextField('customer_address')
+            ->addTextField('customer_email')
+            ->addBooleanField('status_amazon');
+
+        $row->addBlindIndex(
+            'customer_id',
+            new BlindIndex(
+            // Name (used in key splitting):
+                'idx_customer-id',
+                // List of Transforms:
+                [],
+                // Output length (bytes)
+                64,
+                true
+            )
+        );
+        $row->createCompoundIndex(
+            'idx_cpd_customer-id_customer-address',
+            ['customer_id', 'customer_address'],
+            64,
+            true
+        );
+        
+        $data = [
+            [
+                'customer_id' => 29,
+                'customer_address' => 'Jl, Sesetan Gg. Cemara no. 11',
+                'customer_email' => 'rohaye.maimunah@gmail.com',
+                'status' => 'active',
+                'status_amazon' => true
+            ],
+            [
+                'customer_id' => 30,
+                'customer_address' => 'Jl, Belimbing no. 34',
+                'customer_email' => 'bambang.purnomo@gmail.com',
+                'status' => 'active',
+                'status_amazon' => true
+            ]
+        ];
+
+        $eF = $row->setFlatIndexes(true);
+
+        $indexes = $eF->getAllBlindIndexes($data[0]);
+        $indexes2 = $eF->getAllBlindIndexes($data[1]);
+        echo '<pre>$data[0];';
+        print_r($indexes);
+        print_r($indexes2);
+        echo '</pre>';
+        echo '<pre>';
+        foreach($data as $d){
+            print_r($fCipher[] = $eF->encryptRow($d));
+        }
+        echo '</pre>';
+        // print_r($eF->getBlindIndex('idx_customer-id', $data[0]));
+        echo '<pre>';
+        $i = 0;
+        foreach($fCipher as $d){
+            print_r($eF->decryptRow($d));
+        }
+        echo '</pre>';
+        echo '<br/>';
+        echo '=======================';
+        echo '<br/>';
+
+        //user input
+        $searchInput = ['customer_id' => 30];
+        // $searchInput = ['customer_id' => 30, 'customer_address' => 'Jl, Belimbing no. 34']; //search with more than 1 field
+        $findData = $row->setFlatIndexes(true);
+        $indexInput = $row->getAllBlindIndexes($searchInput);
+        echo '<pre>';
+        print_r($indexInput); //ketemu lah dengan data $data[1][idx_customer-id]
+        echo '</pre>';
+    }
+
+    public function searchEncryptedMultiRowWithIndex(CipherSweet $backend)
+    {
+        $row = (new EncryptedMultiRows($backend, true))
+                ->addTable('foo')
+                ->addTable('bar');
+        $row->addIntegerField('foo', 'column1')
+            ->addIntegerField('foo', 'id')
+            ->addTextField('foo', 'column2')
+            ->addBooleanField('foo', 'column3');
+        $row->addIntegerField('bar', 'column1')
+            ->addIntegerField('bar', 'foo_id')
+            ->addIntegerField('bar', 'id');
+        $row->addIntegerField('baz', 'column1');
+
+        $row->addBlindIndex(
+            'foo',
+            'column2',
+            (new BlindIndex('foo_column2_idx', [new Lowercase()], 32, true))
+        );
+        $row->addBlindIndex(
+            'bar',
+            'id',
+            (new BlindIndex('bar_id_idx', [new Lowercase()], 32, true))
+        );
+
+        $data = [
+            'foo' => [
+                'id' => 123456,
+                'column1' => 654321,
+                'column2' => 'paragonie',
+                'column3' => true,
+                'extra' => 'test'
+            ],
+            'bar' => [
+                'id' => 554353,
+                'foo_id' => 123456,
+                'column1' => 654321
+            ],
+            'baz' => [
+                'id' => 3174521,
+                'foo_id' => 123456,
+                'column1' => 654322
+            ]
+        ];
+
+        $eF = $row->setTypedIndexes(true);
+        $indexes = $eF->getAllBlindIndexes($data);
+        echo '<pre>';
+        print_r($indexes);
+        echo '</pre>';
+
+        $dataInput = [
+                'column2' => 'paragonie',
+        ];
+        $dataInput2 = [
+            'id' => 2
+        ];
+
+        $eF2 = $row->setTypedIndexes(true);
+        $indexes2 = $eF2->getBlindIndex('foo', 'foo_column2_idx', $dataInput);
+        $indexes3 = $eF2->getBlindIndex('bar', 'bar_id_idx', $dataInput2);
+        echo '<pre>Indexes2';
+        print_r($indexes2);
+        echo '</pre>';
+
+        $encryptRows = $row->prepareForStorage($data);
+        echo '<pre>';
+        print_r($encryptRows);
+        echo '</pre>';
+
+        // exit;
         foreach($row->listTables() as $table){
             print_r($row->getTypedIndexes());
             print_r($row->getEncryptedRowObjectForTable($table)->getTypedIndexes());

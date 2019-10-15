@@ -13,6 +13,8 @@ use ParagonIE\CipherSweet\EncryptedField;
 use ParagonIE\CipherSweet\BlindIndex;
 use ParagonIE\CipherSweet\Transformation\LastFourDigits;
 use ParagonIE\CipherSweet\EncryptedRow;
+use ParagonIE\CipherSweet\EncryptedMultiRows;
+use ParagonIE\CipherSweet\Transformation\Lowercase;
 
 /**
  * Class CipherSweetTest
@@ -110,11 +112,14 @@ class CipherSweetTest extends TestCase
         //encrypt multiple field with Index
             echo '<br/>';
             $this->encryptRowWithIndex($fipsEngine);
-        //encrypt multiple field
         
         //encrypt multiple row
-        
-        exit;
+            echo '<br/>';
+            echo ">>>>>>>>>>>>>>>>>>>>>>>>>>>";
+            echo "<br/>";
+            $this->encryptMultiRowWithIndex($fipsEngine);
+
+        exit;   
     }
 
     public function encryptField(CipherSweet $backend, $longer = false, $fast = false)
@@ -225,27 +230,86 @@ class CipherSweetTest extends TestCase
         $eF = $row->setFlatIndexes(true);
 
         $indexes = $eF->getAllBlindIndexes($data[0]);
+        $indexes2 = $eF->getAllBlindIndexes($data[1]);
         echo '<pre>';
         print_r($indexes);
+        print_r($indexes2);
         echo '</pre>';
         echo '<pre>';
+        $blind_index = [];
         foreach($data as $d){
             print_r($fCipher[] = $eF->encryptRow($d));
+            $blind_index['idx_customer-address'][] = $eF->getBlindIndex('idx_customer-address', $d);
         }
         echo '</pre>';
         print_r($eF->getBlindIndex('idx_customer-address', $data[0]));
         echo '<pre>';
+        $i = 0;
         foreach($fCipher as $d){
             print_r($eF->decryptRow($d));
         }
         echo '</pre>';
+        echo '<br/>';
+        echo '=======================';
+        echo '<br/>';
+        /**
+         * jadi konsep carinya memanfaatkan index, karena index juga akan tersimpan di db
+         * coba liat $indexes dan $indexes, itu adalah kunci untuk nanti query di database. 
+         * setelah ketemu, baru di decrypt
+         */
+        // var_dump($row->prepareForStorage($data[0]));
     }
 
-    protected function x()
+    public function encryptMultiRowWithIndex(CipherSweet $backend)
     {
-        return (new EncryptedField($backend, 'contacts', 'ssn'))
-        ->addBlindIndex()
-        ->addBlindIndex();
+        $row = (new EncryptedMultiRows($backend, true))
+                ->addTable('foo')
+                ->addTable('bar');
+        $row->addIntegerField('foo', 'column1')
+            ->addTextField('foo', 'column2')
+            ->addBooleanField('foo', 'column3');
+        $row->addIntegerField('bar', 'column1');
+        $row->addIntegerField('baz', 'column1');
+
+        $row->addBlindIndex(
+            'foo',
+            'column2',
+            (new BlindIndex('foo_column2_idx', [new Lowercase()], 32, true))
+        );
+
+        $data = [
+            'foo' => [
+                'id' => 123456,
+                'column1' => 654321,
+                'column2' => 'paragonie',
+                'column3' => true,
+                'extra' => 'test'
+            ],
+            'bar' => [
+                'id' => 554353,
+                'foo_id' => 123456,
+                'column1' => 654321
+            ],
+            'baz' => [
+                'id' => 3174521,
+                'foo_id' => 123456,
+                'column1' => 654322
+            ]
+        ];
+
+        $row->setTypedIndexes(true);
+        $encryptRows = $row->prepareForStorage($data);
+        echo '<pre>';
+        print_r($encryptRows);
+        echo 'xxxxxxxxxxxxDECRYPTxxxxxxxxxxxxx<br/>';
+        print_r($row->decryptManyRows($encryptRows[0]));
+        echo '</pre>';
+
+        exit;
+        foreach($row->listTables() as $table){
+            print_r($row->getTypedIndexes());
+            print_r($row->getEncryptedRowObjectForTable($table)->getTypedIndexes());
+        }
     }
 }
 

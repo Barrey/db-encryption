@@ -266,9 +266,11 @@ class CipherSweetTest extends TestCase
                 ->addTable('foo')
                 ->addTable('bar');
         $row->addIntegerField('foo', 'column1')
+            ->addIntegerField('foo', 'id')
             ->addTextField('foo', 'column2')
             ->addBooleanField('foo', 'column3');
-        $row->addIntegerField('bar', 'column1');
+        $row->addIntegerField('bar', 'column1')
+            ->addIntegerField('bar', 'foo_id');
         $row->addIntegerField('baz', 'column1');
 
         $row->addBlindIndex(
@@ -305,6 +307,43 @@ class CipherSweetTest extends TestCase
         print_r($row->decryptManyRows($encryptRows[0]));
         echo '</pre>';
 
+        echo '<br/>';
+        echo '==========DECRYPT WITH HARDCODE ENCRYPTED DATA=============';
+        echo '<br/>';
+        $encryptedData = [
+            0 => [
+                'foo' => [
+                    'id' => 'fips:PVe2sFKU13vFnT-fsC6_oNNVTlTCfWJJ-JVSCESdZEpPfj-gcJSAl8cX02dYR7k89CCnjwdOfR1Cut5FBn66AAWhUrcjncrV4QwdfeAQBgJyWzoT9oUqU60oF1CFhoDIV29mv2W21j4=',
+                    'column1' => 'fips:NhfK4aySx9DWZFnY51QLtN3fVdVscDpc_6V1DmlJx_A_2Zl4uQqEkXnR3EtEc9DniteD_F5kLGGazR6ieomQyt0LhZkmIjKswDMioZvLWxv8FzAMOMmfCNVou-lGPor3Bi6vQs2aSS8=',
+                    'column2' => 'fips:rHl0BFIrfOVmHMHJ17DGzdLVwDUGSVJh0X-tYoGWUuaaJL4Drnr3D3JEEH3HDZjlVFTk6qyidQiwmkUcUg5z-yKGGGotrEMIKe6r3BJF0e7wWpX8P1PNehZ5dZbYFVe6ntPVAbV4IFSh',
+                    'column3' => 'fips:55W7LcQ7fR1O-BJHiLd3tyTb82AG5UzeS1YLRc1A9cFSO091qu2f_HSEucwVXP6EtCWyX29863zx2ANJU2BBB5S8mn-u_XvAwukebAnT2nt2cJh0ncACmxdsP93Ma1LCSQ==',
+                    'extra' => 'test'
+                ],
+                'bar' => [
+                    'id' => 554353,
+                    'foo_id' => 'fips:M6QRRB1rOEWy_H5nkM8yUvH0ohrN04VTxzVi6jCNSHuWfsSi-60oU_7-Ud4n_qjSbhI0YQlXupnxNuiYRKd02vUnnSioSYQbSdzCaqvrQOtMQgHszbR51UIzIhcayENekc__T9vso44=',
+                    'column1' => 'fips:03FAUs8VCmC5tQ0lcYMI6qFu5GHLOWossySv4wUUuSTkYIHjnxyJdlf1z35g6U20SjnIPRwoPYoueYUzsXomNrr7xchSFK4ZnvoRYnAVk1mJ1euO_t7xrpA3LSSMZH2zVW5KOqSDBCU='
+                ],
+                'baz' => [
+                    'id' => 3174521,
+                    'foo_id' => 123456,
+                    'column1' => 'fips:gnfIhxlOGrhyr6TYBUmCAxF9nfglNpAWf3JzO3P5cJ5TreH1LGdk0U3PpenGeh7YqiNGE1jcDWWTwDZ8sg1C75KNxUlwf-TlrFsx4ufFwDsJ9Jq1G9Ilqt3rvJk9yeS6vMQVSDnPu0A='
+                ]
+            ],
+            1 => [
+                'foo' => [
+                    'foo_column2_idx' => [
+                                            'type' => 'vxb6t3nzfqqv2',
+                                            'value' => '32bc4561'
+                                        ]
+                    ],
+                'bar' => [],
+                'baz' => []
+            ]
+        ];
+        echo '<pre>';
+        print_r($row->decryptManyRows($encryptedData[0]));
+        echo '</pre>';
         exit;
         foreach($row->listTables() as $table){
             print_r($row->getTypedIndexes());
